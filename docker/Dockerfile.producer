@@ -1,0 +1,6 @@
+FROM python:3.11-slim-bookworm
+RUN pip install --no-cache-dir 'confluent-kafka>=2.6,<3'
+WORKDIR /app
+COPY pulselake /app/pulselake
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["python", "-m", "pulselake.producer"]

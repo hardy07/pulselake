@@ -1,0 +1,11 @@
+name: pulselake
+version: '1.0.0'
+config-version: 2
+profile: pulselake
+model-paths: [models]
+test-paths: [tests]
+clean-targets: [target, dbt_packages]
+models:
+  pulselake:
+    +file_format: delta
+    +materialized: table

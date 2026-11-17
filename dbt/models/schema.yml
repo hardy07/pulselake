@@ -1,0 +1,33 @@
+version: 2
+models:
+  - name: fact_listens
+    description: One row per accepted listening event, keyed by event_id.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: user_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_users')
+                field: user_id
+      - name: song_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_songs')
+                field: song_id
+  - name: dim_users
+    columns:
+      - name: user_id
+        data_tests: [unique, not_null]
+  - name: dim_songs
+    columns:
+      - name: song_id
+        data_tests: [unique, not_null]
+  - name: daily_metrics
+    columns:
+      - name: event_date
+        data_tests: [unique, not_null]

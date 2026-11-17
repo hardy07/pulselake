@@ -1,0 +1,14 @@
+version: 2
+sources:
+  - name: silver
+    database: "{{ target.catalog }}"
+    schema: pulselake_silver
+    tables:
+      - name: events
+        columns:
+          - name: event_id
+            data_tests: [not_null, unique]
+          - name: user_id
+            data_tests: [not_null]
+          - name: event_time
+            data_tests: [not_null]

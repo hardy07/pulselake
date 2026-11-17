@@ -1,0 +1,9 @@
+FROM python:3.11-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends openjdk-17-jre-headless procps curl \
+    && rm -rf /var/lib/apt/lists/*
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PYSPARK_PYTHON=python3 PYTHONPATH=/app PYTHONUNBUFFERED=1
+RUN pip install --no-cache-dir pyspark==3.5.8
+WORKDIR /app
+COPY pulselake /app/pulselake
+CMD ["spark-submit", "--master", "local[2]", "--driver-memory", "1g", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.8", "/app/pulselake/spark_stream.py"]

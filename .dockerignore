@@ -1,0 +1,12 @@
+runtime
+.venv
+.tools
+.git
+__pycache__
+.env
+.databricks
+dbt/target
+dbt/logs
+dbt/profiles.yml
+output
+tmp

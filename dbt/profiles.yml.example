@@ -1,0 +1,11 @@
+pulselake:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      catalog: "{{ env_var('PULSELAKE_CATALOG', 'workspace') }}"
+      schema: pulselake_gold
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      auth_type: oauth
+      threads: 2
