@@ -7,6 +7,37 @@ PulseLake simulates music activity, streams events through a local Kafka broker,
 processes them into completed Parquet batches, and uploads them to Databricks.
 A Lakeflow Job builds Bronze, Silver, and Gold tables for analytics.
 
+## Demo screenshots
+
+### Published analytics dashboard
+
+![PulseLake dashboard showing 450 listens, 77 active listeners, five songs, 26.73 listening hours, and six quarantined records](docs/images/pulselake-dashboard.png)
+
+The published dashboard combines listening totals, song rankings, daily activity,
+country and subscription breakdowns, and quarantined records. These are synthetic
+demo results. Click the image to inspect the full-resolution screenshot.
+
+### Databricks job and dashboard refresh
+
+![Databricks task graph: setup, bronze, silver, gold, then refresh_dashboard](docs/images/pulselake-job-tasks.png)
+
+The deployed demo has a fifth task, `refresh_dashboard`, after `gold`. The task
+graph shows the configured dependencies; the run history below confirms successful
+execution. The repository's default bundle still has four tasks; see
+[dashboard refresh configuration](docs/pipeline.md#optional-dashboard-task).
+
+### Successful scheduled runs
+
+![Databricks run history showing successful hourly scheduler launches and green setup, bronze, silver, gold, and refresh_dashboard tasks](docs/images/pulselake-successful-runs.png)
+
+The November 18 run history shows hourly runs launched **By scheduler** with
+**Succeeded** status. All five task rows are green for the recent runs, including
+`refresh_dashboard`, confirming that the deployed job refreshes the published
+dashboard after Gold succeeds.
+
+Screenshots were supplied on November 18, 2026, from the existing demo deployment.
+They precede deployment of this renamed source release.
+
 ## Architecture
 
 ```mermaid
@@ -67,11 +98,12 @@ The working demo was verified on November 17, 2026:
 | Dashboard active listeners | 77 |
 | Dashboard songs played | 5 |
 | Dashboard listening hours | 26.73 |
+| Quarantined records shown in the dashboard | 6 |
 
 The initial cloud dbt build completed four models and passed 18 data tests.
-Successful four-task job runs, automatic uploads, and manual dashboard refresh
-were verified. Automatic dashboard refresh after Gold remains an optional step
-whose successful execution has not been confirmed.
+Automatic uploads and manual dashboard refresh were verified during the initial
+demo. The November 18 screenshots additionally confirm a published dashboard and
+successful scheduled five-task runs, including dashboard refresh after Gold.
 
 These are historical demo results, not guaranteed results for every generated
 batch. This renamed source release uses fresh `pulselake_*` resources. It has not
@@ -233,6 +265,10 @@ publish the dashboard and add a Dashboard task depending on `gold`. See
 [the pipeline guide](docs/pipeline.md). This fifth task is not in the default bundle.
 
 ## Verification
+
+The renamed source passed all **20 local tests**, and dbt parsing and Docker
+Compose configuration validation passed. Live execution of the renamed cloud
+resources has not been tested.
 
 Run local tests without a Kafka broker or Databricks account:
 

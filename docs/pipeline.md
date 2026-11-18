@@ -21,6 +21,10 @@ any UI edits in the local bundle before redeploying.
 
 ## Optional dashboard task
 
+The November 18 run history in the README confirms successful scheduled execution
+of all five tasks in the existing demo, including dashboard refresh after Gold.
+The source bundle remains a four-task template until a published dashboard is selected.
+
 Publish the dashboard first. Add a task of type Dashboard, name it
 `refresh_dashboard`, select the dashboard and SQL warehouse, and set its dependency
 to `gold` with the All succeeded condition. Test the five-task run. Add the same

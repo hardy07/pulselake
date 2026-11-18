@@ -1,5 +1,9 @@
 # PulseLake dashboard
 
+The published demo is shown in the [README screenshots](../README.md#demo-screenshots).
+Its refresh task succeeded in the existing workspace's scheduled runs, as shown
+in the November 18 run-history screenshot.
+
 Build Gold first, then create an AI/BI dashboard in your workspace. Select your
 SQL warehouse and add one dataset for each SQL file in `databricks/dashboard/`.
 The queries use catalog `workspace`; change this if you configured another catalog.
