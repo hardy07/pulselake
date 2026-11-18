@@ -1,6 +1,6 @@
 # PulseLake dashboard
 
-The published demo is shown in the [README screenshots](../README.md#demo-screenshots).
+The published demo is shown in the [README dashboard](../README.md#dashboard).
 Its refresh task succeeded in the existing workspace's scheduled runs, as shown
 in the November 18 run-history screenshot.
 

@@ -30,7 +30,7 @@ dependency on `gold`. It uses the configured SQL warehouse and dashboard ID.
 
 Publish the dashboard first and ensure its queries read this deployment's Gold
 tables. For a new deployment, seed Bronze/Silver with the notebooks and build Gold
-once with the local dbt runner before creating the dashboard. The README describes
+once with the local dbt runner before creating the dashboard. The [setup guide](getting-started.md) describes
 this initial setup. The bundle references a dashboard; it does not create or
 publish one, rewrite its queries, or grant permissions.
 
