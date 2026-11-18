@@ -12,9 +12,12 @@ No live data, dashboard definition, or remote job was renamed automatically.
 3. Use a fresh `runtime/` and the new Compose volumes. Do not pair existing Kafka
    checkpoints with a new empty broker or manually change stream identity files.
 4. Run the new setup notebook to create `pulselake_*` schemas and the landing volume.
-5. Start uploads, generate events, deploy the new bundle, and verify counts.
-6. Create/repoint dashboard datasets using the SQL in this release. Existing
-   dashboards still reference their previously configured tables.
+5. Start uploads, generate events, run Bronze/Silver once, and build Gold with the
+   local dbt runner to prepare the dashboard's source tables.
+6. Create/repoint and publish dashboard datasets using the SQL in this release.
+   Existing dashboards still reference their previously configured tables. Save
+   the published dashboard ID with `scripts/configure.py --dashboard-id ID`, then
+   deploy the five-task bundle and verify counts and dashboard refresh.
 7. Validate the new pipeline before enabling its schedule. Pause the previous
    cloud job when retiring it to avoid running two demos unnecessarily.
 

@@ -15,7 +15,7 @@ A Lakeflow Job builds Bronze, Silver, and Gold tables for analytics.
 
 The published dashboard combines listening totals, song rankings, daily activity,
 country and subscription breakdowns, and quarantined records. These are synthetic
-demo results. Click the image to inspect the full-resolution screenshot.
+demo results.
 
 ### Databricks job and dashboard refresh
 
@@ -23,8 +23,8 @@ demo results. Click the image to inspect the full-resolution screenshot.
 
 The deployed demo has a fifth task, `refresh_dashboard`, after `gold`. The task
 graph shows the configured dependencies; the run history below confirms successful
-execution. The repository's default bundle still has four tasks; see
-[dashboard refresh configuration](docs/pipeline.md#optional-dashboard-task).
+execution. The repository's bundle defines the same five-task sequence; see
+[dashboard refresh configuration](docs/pipeline.md#dashboard-refresh-task).
 
 ### Successful scheduled runs
 
@@ -35,8 +35,6 @@ The November 18 run history shows hourly runs launched **By scheduler** with
 `refresh_dashboard`, confirming that the deployed job refreshes the published
 dashboard after Gold succeeds.
 
-Screenshots were supplied on November 18, 2026, from the existing demo deployment.
-They precede deployment of this renamed source release.
 
 ## Architecture
 
@@ -59,20 +57,21 @@ flowchart LR
 
 Local ingestion runs continuously in microbatches. Cloud transformations run on
 an hourly schedule or on demand using `AvailableNow`. This is streaming ingestion
-with scheduled analytics; dashboard refresh is a separate step.
+with scheduled analytics; the final job task refreshes the published dashboard
+after the Gold models and tests succeed.
 
 ## What each tool does
 
-| Tool | Responsibility |
-|---|---|
-| Docker Compose | Runs Kafka, the generator, and local Spark. |
-| Kafka | Buffers events in `music.events`. |
+| Tool                       | Responsibility                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------- |
+| Docker Compose             | Runs Kafka, the generator, and local Spark.                                           |
+| Kafka                      | Buffers events in `music.events`.                                                     |
 | Spark Structured Streaming | Consumes Kafka with checkpoints; writes Parquet batches every 120 seconds by default. |
-| Python / Databricks SDK | Uploads completed batches, verifies checksums, and records delivery receipts. |
-| Databricks / Delta Lake | Stores and processes the Bronze and Silver layers. |
-| dbt | Transforms Silver into Gold using SQL, incremental merges, and data tests. |
-| Lakeflow Jobs | Executes setup -> Bronze -> Silver -> Gold in dependency order. |
-| AI/BI dashboards | Presents listening metrics from Gold. |
+| Python / Databricks SDK    | Uploads completed batches, verifies checksums, and records delivery receipts.         |
+| Databricks / Delta Lake    | Stores and processes the Bronze and Silver layers.                                    |
+| dbt                        | Transforms Silver into Gold using SQL, incremental merges, and data tests.            |
+| Lakeflow Jobs              | Executes setup -> Bronze -> Silver -> Gold -> dashboard refresh in dependency order. |
+| AI/BI dashboards           | Presents listening metrics from Gold.                                                 |
 
 ## Implemented features
 
@@ -90,15 +89,15 @@ with scheduled analytics; dashboard refresh is a separate step.
 
 The working demo was verified on November 17, 2026:
 
-| Metric | Observed value |
-|---|---:|
-| Bronze events | 600 |
-| Silver events | 567 |
-| Gold listening events | 450 |
-| Dashboard active listeners | 77 |
-| Dashboard songs played | 5 |
-| Dashboard listening hours | 26.73 |
-| Quarantined records shown in the dashboard | 6 |
+| Metric                                     | Observed value |
+| ------------------------------------------ | -------------: |
+| Bronze events                              |            600 |
+| Silver events                              |            567 |
+| Gold listening events                      |            450 |
+| Dashboard active listeners                 |             77 |
+| Dashboard songs played                     |              5 |
+| Dashboard listening hours                  |          26.73 |
+| Quarantined records shown in the dashboard |              6 |
 
 The initial cloud dbt build completed four models and passed 18 data tests.
 Automatic uploads and manual dashboard refresh were verified during the initial
@@ -213,6 +212,33 @@ docker compose run --rm producer --count 0 --rate 5
 Stop continuous generation with Ctrl+C. Keep the PC awake and Docker and the
 watcher running while sending new events.
 
+### First deployment: prepare the published dashboard
+
+The dashboard task needs an existing published dashboard. If this is a new
+deployment, run **01_bronze**, then **02_silver**, once after the first upload, and
+build the initial Gold tables:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_dbt.py
+```
+
+Create the dashboard using [the dashboard guide](docs/dashboard.md), point its
+datasets at this deployment's `pulselake_gold` tables, and publish it. If a suitable
+published dashboard already exists, skip this one-time preparation.
+
+Copy its dashboard ID from the URL, for example the identifier after
+`/sql/dashboardsv3/`, excluding query parameters. Save the ID without changing your
+existing connection settings:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\configure.py --dashboard-id YOUR_DASHBOARD_ID
+```
+
+This value stays in ignored `runtime/settings.json`. You can alternatively set
+`PULSELAKE_DASHBOARD_ID` or, when using the CLI directly, `BUNDLE_VAR_dashboard_id`.
+The job identity needs access to the dashboard and its data. Selecting a dashboard
+ID does not rewrite its dataset queries or publish draft changes.
+
 ### Deploy and run the cloud job
 
 ```powershell
@@ -223,10 +249,11 @@ This validates the bundle, uploads notebooks and dbt code, creates/updates the j
 and submits a run. In **Jobs & Pipelines > PulseLake Pipeline > Runs**, verify:
 
 ```text
-setup -> bronze -> silver -> gold
+setup -> bronze -> silver -> gold -> refresh_dashboard
 ```
 
-The Gold task runs `dbt build`. Normal operation does not require manually running
+The Gold task runs `dbt build`. The dashboard refresh runs only after Gold succeeds.
+Normal operation does not require manually running
 individual notebooks or running dbt locally. Data arriving after a task collects
 its input can be processed in the next run.
 
@@ -243,30 +270,30 @@ For optional local dbt development, after Bronze and Silver contain data:
 
 ## Tables and dashboard
 
-| Table in the configured catalog | Purpose |
-|---|---|
-| `pulselake_bronze.events` | Raw event payloads and Kafka/ingestion metadata. |
-| `pulselake_silver.events` | Valid events, deduplicated by event ID. |
-| `pulselake_silver.quarantine` | Invalid records and rejection reasons. |
-| `pulselake_gold.fact_listens` | Listening facts, incrementally merged by event ID. |
-| `pulselake_gold.dim_users` | User attributes from valid events. |
-| `pulselake_gold.dim_songs` | Song attributes. |
-| `pulselake_gold.daily_metrics` | Daily listening aggregates. |
-| `pulselake_ops.pipeline_runs` | Notebook-stage audit history. |
+| Table in the configured catalog | Purpose                                            |
+| ------------------------------- | -------------------------------------------------- |
+| `pulselake_bronze.events`       | Raw event payloads and Kafka/ingestion metadata.   |
+| `pulselake_silver.events`       | Valid events, deduplicated by event ID.            |
+| `pulselake_silver.quarantine`   | Invalid records and rejection reasons.             |
+| `pulselake_gold.fact_listens`   | Listening facts, incrementally merged by event ID. |
+| `pulselake_gold.dim_users`      | User attributes from valid events.                 |
+| `pulselake_gold.dim_songs`      | Song attributes.                                   |
+| `pulselake_gold.daily_metrics`  | Daily listening aggregates.                        |
+| `pulselake_ops.pipeline_runs`   | Notebook-stage audit history.                      |
 
 Silver includes more than listening events, so its row count differs from Gold.
 Active listeners count users who listened, not all users in the dimension table.
 Song count can stay at five because the simulator reuses its catalog.
 
 Follow [the dashboard guide](docs/dashboard.md) and use the six SELECT queries in
-`databricks/dashboard/`. After the job succeeds, refresh the dashboard itself;
-browser reload alone can show cached results. To refresh after Gold automatically,
-publish the dashboard and add a Dashboard task depending on `gold`. See
-[the pipeline guide](docs/pipeline.md). This fifth task is not in the default bundle.
+`databricks/dashboard/`. The bundle's fifth task refreshes the configured published
+dashboard after Gold succeeds. Open the published version to inspect the results;
+an already-open browser tab may still need reloading. See
+[the pipeline guide](docs/pipeline.md). No email subscribers are configured.
 
 ## Verification
 
-The renamed source passed all **20 local tests**, and dbt parsing and Docker
+The source passed all **24 local tests**, and dbt parsing and Docker
 Compose configuration validation passed. Live execution of the renamed cloud
 resources has not been tested.
 

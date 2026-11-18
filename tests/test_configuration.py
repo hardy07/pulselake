@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from project_config import configure_environment
+from configure import main as configure_main
 
 
 class ConfigurationTests(unittest.TestCase):
@@ -51,3 +52,33 @@ class ConfigurationTests(unittest.TestCase):
         os.environ["PULSELAKE_CATALOG"] = "invalid;catalog"
         with self.assertRaisesRegex(ValueError, "simple SQL identifier"):
             configure_environment(self.root)
+
+    def test_deployment_requires_dashboard_but_local_processing_does_not(self):
+        self.settings()
+        configure_environment(self.root, require_connection=True)
+        with self.assertRaisesRegex(ValueError, "--dashboard-id"):
+            configure_environment(self.root, require_connection=True, require_dashboard=True)
+
+    def test_dashboard_only_update_preserves_connection_settings(self):
+        self.settings()
+        (self.root / "dbt").mkdir()
+        (self.root / "dbt/profiles.yml").write_text("existing local profile")
+        configure_main(["--dashboard-id", "test-dashboard-123"], root=self.root)
+        settings = json.loads((self.root / "runtime/settings.json").read_text())
+        self.assertEqual(settings["host"], "https://example.cloud.databricks.com")
+        self.assertEqual(settings["warehouse_id"], "example123")
+        self.assertEqual(settings["catalog"], "demo")
+        configure_environment(self.root, require_connection=True, require_dashboard=True)
+        self.assertEqual(os.environ["BUNDLE_VAR_dashboard_id"], "test-dashboard-123")
+        self.assertEqual((self.root / "dbt/profiles.yml").read_text(), "existing local profile")
+
+    def test_dashboard_bundle_override_is_supported(self):
+        os.environ["PULSELAKE_DASHBOARD_ID"] = "saved-dashboard"
+        os.environ["BUNDLE_VAR_dashboard_id"] = "override-dashboard"
+        configure_environment(self.root, require_dashboard=True)
+        self.assertEqual(os.environ["BUNDLE_VAR_dashboard_id"], "override-dashboard")
+
+    def test_dashboard_url_is_rejected(self):
+        os.environ["PULSELAKE_DASHBOARD_ID"] = "https://example.com/dashboard"
+        with self.assertRaisesRegex(ValueError, "not a dashboard URL"):
+            configure_environment(self.root, require_dashboard=True)

@@ -9,6 +9,8 @@ variables:
     default: workspace
   warehouse_id:
     description: SQL warehouse ID from your workspace (required for dbt)
+  dashboard_id:
+    description: ID of an existing published dashboard that queries this deployment's Gold tables
 
 workspace:
   host: ${var.workspace_host}
@@ -79,6 +81,13 @@ resources:
             schema: pulselake_gold
             commands:
               - dbt build
+        - task_key: refresh_dashboard
+          depends_on:
+            - task_key: gold
+          run_if: ALL_SUCCESS
+          dashboard_task:
+            dashboard_id: ${var.dashboard_id}
+            warehouse_id: ${var.warehouse_id}
 
 targets:
   dev:

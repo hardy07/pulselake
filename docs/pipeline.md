@@ -1,12 +1,14 @@
 # PulseLake pipeline
 
-The bundle in `databricks.yml` defines `setup -> bronze -> silver -> gold`.
+The bundle in `databricks.yml` defines
+`setup -> bronze -> silver -> gold -> refresh_dashboard`.
 Each task waits for its predecessor to succeed; one run is allowed at a time.
 Bronze and Silver use persistent checkpoints and `AvailableNow` runs. Gold runs
 `dbt build` on the configured warehouse.
 
 Configure local connection settings using `scripts/configure.py`, log in with
-CLI profile `pulselake`, then run:
+CLI profile `pulselake`, and save your published dashboard's ID with
+`scripts/configure.py --dashboard-id YOUR_DASHBOARD_ID`, then run:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\deploy_pipeline.py
@@ -19,16 +21,29 @@ The schedule starts paused. After testing, change `schedule.pause_status` in the
 bundle to `UNPAUSED` and redeploy. The schedule is hourly in Asia/Calcutta. Match
 any UI edits in the local bundle before redeploying.
 
-## Optional dashboard task
+## Dashboard refresh task
 
 The November 18 run history in the README confirms successful scheduled execution
 of all five tasks in the existing demo, including dashboard refresh after Gold.
-The source bundle remains a four-task template until a published dashboard is selected.
+The source bundle now includes that fifth task with `run_if: ALL_SUCCESS` and a
+dependency on `gold`. It uses the configured SQL warehouse and dashboard ID.
 
-Publish the dashboard first. Add a task of type Dashboard, name it
-`refresh_dashboard`, select the dashboard and SQL warehouse, and set its dependency
-to `gold` with the All succeeded condition. Test the five-task run. Add the same
-task to the bundle before redeployment; it is not included by default.
+Publish the dashboard first and ensure its queries read this deployment's Gold
+tables. For a new deployment, seed Bronze/Silver with the notebooks and build Gold
+once with the local dbt runner before creating the dashboard. The README describes
+this initial setup. The bundle references a dashboard; it does not create or
+publish one, rewrite its queries, or grant permissions.
+
+Save the ID in local settings:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\configure.py --dashboard-id YOUR_DASHBOARD_ID
+```
+
+Existing host, warehouse, and catalog settings are retained. Configuration can
+also come from `PULSELAKE_DASHBOARD_ID` or `BUNDLE_VAR_dashboard_id`. Deployment
+fails early with instructions if the ID is missing. No email subscription is set.
+Validate and deploy, then inspect all five task results.
 
 View the published dashboard when checking refresh results. Cache refresh and
 refreshing an already-open browser tab are separate behaviors.

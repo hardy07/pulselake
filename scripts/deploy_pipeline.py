@@ -13,7 +13,10 @@ def main():
                         help="Validate the bundle without deploying or starting a run")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    cli = configure_environment(root, require_connection=True)
+    try:
+        cli = configure_environment(root, require_connection=True, require_dashboard=True)
+    except ValueError as error:
+        parser.error(str(error))
     if not cli:
         parser.error("Install the Databricks CLI and ensure it is on PATH")
     common = ["--profile", os.environ["DATABRICKS_CONFIG_PROFILE"], "--target", "dev"]
@@ -21,7 +24,7 @@ def main():
     if not args.validate_only:
         steps.extend([
             ("Deploy notebooks, dbt models and job", ["deploy", "--fail-on-active-runs"]),
-            ("Submit setup -> Bronze -> Silver -> dbt", ["run", "pulselake_hourly", "--no-wait"]),
+            ("Submit setup -> Bronze -> Silver -> dbt -> dashboard refresh", ["run", "pulselake_hourly", "--no-wait"]),
         ])
     for label, command in steps:
         print(f"\n{label}", flush=True)
@@ -33,7 +36,7 @@ def main():
         print("\nBundle validation passed.", flush=True)
     else:
         print("\nRun submitted, not yet verified successful. Open Jobs & Pipelines and find PulseLake Pipeline.", flush=True)
-        print("After all four tasks succeed, set schedule.pause_status to UNPAUSED in databricks.yml and redeploy.", flush=True)
+        print("After all five tasks succeed, set schedule.pause_status to UNPAUSED in databricks.yml and redeploy.", flush=True)
         print("Keep any UI edits in sync with the bundle before redeploying.", flush=True)
     return 0
 

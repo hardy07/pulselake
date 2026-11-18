@@ -21,13 +21,14 @@ Run each dataset before wiring widgets. The summary returns one aggregate row;
 select the actual metric as the value, using SUM or MAX rather than counting rows.
 Active listeners are users with listens, not the full user dimension.
 
-After a successful pipeline run, refresh the dashboard using its refresh arrow.
-Browser reload can retain cached results. If Gold changes but the dashboard does
-not, run the summary dataset and check widget source fields and date filters.
+After a successful five-task run, view the published dashboard. An already-open
+tab may need reloading. If Gold changes but the dashboard does not, check the
+refresh task result, dashboard ID, dataset queries, widget fields, and date filters.
 
-For automatic refresh, publish the dashboard and add the dependent Dashboard task
-explained in [the pipeline guide](pipeline.md). The default bundle has four tasks;
-automatic refresh has not been verified for this renamed deployment.
+For automatic refresh, publish the dashboard and save its ID using
+`scripts/configure.py --dashboard-id YOUR_DASHBOARD_ID`, then deploy the bundle.
+The fifth task is included, as explained in [the pipeline guide](pipeline.md).
+Live execution has not been verified for this renamed deployment.
 
 Historical demo metrics are documented in the README. A new deployment begins
 with fresh tables; metrics vary with the batches generated or replayed.
